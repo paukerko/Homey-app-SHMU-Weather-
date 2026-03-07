@@ -1,0 +1,24 @@
+{
+  "name": {
+    "en": "mochovce-weather"
+  },
+  "class": "sensor",
+  "capabilities": [
+    "measure_humidity",
+    "measure_pressure",
+    "alarm_rain",
+    "measure_temperature",
+    "measure_wind_strength"
+  ],
+  "platforms": [
+    "local"
+  ],
+  "connectivity": [
+    "lan"
+  ],
+  "images": {
+    "small": "{{driverAssetsPath}}/images/small.png",
+    "large": "{{driverAssetsPath}}/images/large.png",
+    "xlarge": "{{driverAssetsPath}}/images/xlarge.png"
+  }
+}
