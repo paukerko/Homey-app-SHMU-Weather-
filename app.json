@@ -1,3 +1,56 @@
 {
-  "_comment": "This file is generated. Please edit .homeycompose/app.json instead."
+  "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
+  "id": "com.martinpauko.mochovceweather",
+  "version": "1.0.0",
+  "compatibility": ">=12.4.0",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "Mochovce Weather"
+  },
+  "description": {
+    "en": "Weather for Mochovce station"
+  },
+  "category": [
+    "climate"
+  ],
+  "permissions": [],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Martin Pauko",
+    "email": "pauko.martinn@gmail.com"
+  },
+  "drivers": [
+    {
+      "name": {
+        "en": "mochovce-weather"
+      },
+      "class": "sensor",
+      "capabilities": [
+        "measure_humidity",
+        "measure_pressure",
+        "alarm_rain",
+        "measure_temperature",
+        "measure_wind_strength"
+      ],
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "images": {
+        "small": "/drivers/mochovce-weather/assets/images/small.png",
+        "large": "/drivers/mochovce-weather/assets/images/large.png",
+        "xlarge": "/drivers/mochovce-weather/assets/images/xlarge.png"
+      },
+      "id": "mochovce-weather"
+    }
+  ]
 }

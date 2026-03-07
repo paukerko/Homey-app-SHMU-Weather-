@@ -27,7 +27,6 @@ class MochovceWeatherDevice extends Homey.Device {
     await this.setCapabilityValue("measure_humidity", weather.humidity);
     await this.setCapabilityValue("measure_pressure", weather.pressure);
     await this.setCapabilityValue("measure_wind_strength", weather.wind);
-    await this.setCapabilityValue("alarm_rain", weather.isRaining);
 
     this.log("Weather updated", weather);
   }
