@@ -29,7 +29,7 @@
   "drivers": [
     {
       "name": {
-        "en": "mochovce-weather"
+        "en": "Mochovce Weather"
       },
       "class": "sensor",
       "capabilities": [
@@ -49,6 +49,22 @@
         "large": "/drivers/mochovce-weather/assets/images/large.png",
         "xlarge": "/drivers/mochovce-weather/assets/images/xlarge.png"
       },
+      "pair": [
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "next": "add_devices"
+          },
+          "options": {
+            "singular": true
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ],
       "id": "mochovce-weather"
     }
   ]
