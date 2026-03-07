@@ -35,7 +35,6 @@
       "capabilities": [
         "measure_humidity",
         "measure_pressure",
-        "alarm_rain",
         "measure_temperature",
         "measure_wind_strength"
       ],
