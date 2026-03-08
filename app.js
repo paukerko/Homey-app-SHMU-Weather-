@@ -48,6 +48,8 @@ module.exports = class MyApp extends Homey.App {
     this.isUpdating = true;
 
     try {
+      this.log("Polling SHMU for latest dataset...");
+
       const raw = await fetchStationData({
         lastProbeTimeIso: this.lastProbeTimeIso,
       });
@@ -76,7 +78,7 @@ module.exports = class MyApp extends Homey.App {
       }
 
       this.log(
-        `Weather updated successfully (${weather.measuredAt}) from ${weather.sourceUrl}`,
+        `Weather updated: measuredAt=${weather.measuredAt}, sourceFile=${weather.sourceUrl}`,
       );
     } catch (error) {
       this.error("Weather update failed:", error);
