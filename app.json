@@ -4,18 +4,15 @@
   "version": "1.0.0",
   "compatibility": ">=12.4.0",
   "sdk": 3,
-  "platforms": [
-    "local"
-  ],
+  "platforms": ["local"],
   "name": {
     "en": "Mochovce Weather"
   },
   "description": {
     "en": "Weather for Mochovce station"
   },
-  "category": [
-    "climate"
-  ],
+
+  "category": ["climate"],
   "permissions": [],
   "images": {
     "small": "/assets/images/small.png",
@@ -39,12 +36,8 @@
         "measure_wind_strength",
         "last_update"
       ],
-      "platforms": [
-        "local"
-      ],
-      "connectivity": [
-        "lan"
-      ],
+      "platforms": ["local"],
+      "connectivity": ["lan"],
       "images": {
         "small": "/drivers/mochovce-weather/assets/images/small.png",
         "large": "/drivers/mochovce-weather/assets/images/large.png",
