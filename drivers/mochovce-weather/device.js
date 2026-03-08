@@ -29,11 +29,18 @@ class MochovceWeatherDevice extends Homey.Device {
     this.log("RAW SHMU DATA:", raw);
     this.log("Mapped weather:", weather);
 
+    // základné meteo hodnoty
     await this.setCapabilityValue("measure_temperature", weather.temperature);
     await this.setCapabilityValue("measure_humidity", weather.humidity);
     await this.setCapabilityValue("measure_pressure", weather.pressure);
     await this.setCapabilityValue("measure_wind_strength", weather.windSpeed);
 
+    // čas posledného merania (unix timestamp)
+    const lastMeasurement = new Date(weather.measuredAt).getTime();
+
+    await this.setCapabilityValue("meter_power", lastMeasurement);
+
+    // uloženie kompletných dát
     await this.setStoreValue("lastWeather", weather);
   }
 
