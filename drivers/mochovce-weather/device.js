@@ -10,25 +10,37 @@ class MochovceWeatherDevice extends Homey.Device {
 
     await this.updateWeather();
 
-    this.interval = this.homey.setInterval(async () => {
-      try {
-        await this.updateWeather();
-      } catch (error) {
-        this.error(error);
-      }
-    }, 600000); // 10 min
+    this.interval = this.homey.setInterval(
+      async () => {
+        try {
+          await this.updateWeather();
+        } catch (error) {
+          this.error("Weather update failed:", error);
+        }
+      },
+      10 * 60 * 1000,
+    );
   }
 
   async updateWeather() {
     const raw = await fetchStationData();
     const weather = mapStationData(raw);
 
+    this.log("RAW SHMU DATA:", raw);
+    this.log("Mapped weather:", weather);
+
     await this.setCapabilityValue("measure_temperature", weather.temperature);
     await this.setCapabilityValue("measure_humidity", weather.humidity);
     await this.setCapabilityValue("measure_pressure", weather.pressure);
-    await this.setCapabilityValue("measure_wind_strength", weather.wind);
+    await this.setCapabilityValue("measure_wind_strength", weather.windSpeed);
 
-    this.log("Weather updated", weather);
+    await this.setStoreValue("lastWeather", weather);
+  }
+
+  async onDeleted() {
+    if (this.interval) {
+      this.homey.clearInterval(this.interval);
+    }
   }
 }
 
