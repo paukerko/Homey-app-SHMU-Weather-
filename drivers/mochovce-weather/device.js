@@ -35,9 +35,16 @@ class MochovceWeatherDevice extends Homey.Device {
     await this.setCapabilityValue("measure_pressure", weather.pressure);
     await this.setCapabilityValue("measure_wind_strength", weather.windSpeed);
 
-    // uloženie kompletných dát
+    const date = new Date(weather.measuredAt);
+
+    const formatted =
+      date.getHours().toString().padStart(2, "0") +
+      ":" +
+      date.getMinutes().toString().padStart(2, "0");
+
+    await this.setCapabilityValue("last_update", formatted);
+
     await this.setStoreValue("lastWeather", weather);
-    await this.setStoreValue("lastMeasuredAt", weather.measuredAt);
   }
 
   async onDeleted() {
