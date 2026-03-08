@@ -1,56 +1,75 @@
 "use strict";
 
 const Homey = require("homey");
-const { fetchStationData } = require("../../lib/api");
-const { mapStationData } = require("../../lib/mapper");
 
 class MochovceWeatherDevice extends Homey.Device {
   async onInit() {
     this.log("Mochovce Weather device started");
 
-    await this.updateWeather();
+    const weather = this.homey.app.getWeather();
 
-    this.interval = this.homey.setInterval(
-      async () => {
-        try {
-          await this.updateWeather();
-        } catch (error) {
-          this.error("Weather update failed:", error);
-        }
-      },
-      10 * 60 * 1000,
-    );
+    if (weather) {
+      await this.updateFromApp(weather);
+    }
   }
 
-  async updateWeather() {
-    const raw = await fetchStationData();
-    const weather = mapStationData(raw);
+  async updateFromApp(weather) {
+    if (!weather) {
+      return;
+    }
 
-    this.log("RAW SHMU DATA:", raw);
-    this.log("Mapped weather:", weather);
-
-    // základné meteo hodnoty
-    await this.setCapabilityValue("measure_temperature", weather.temperature);
-    await this.setCapabilityValue("measure_humidity", weather.humidity);
-    await this.setCapabilityValue("measure_pressure", weather.pressure);
-    await this.setCapabilityValue("measure_wind_strength", weather.windSpeed);
-
-    const date = new Date(weather.measuredAt);
-
-    const formatted =
-      date.getHours().toString().padStart(2, "0") +
-      ":" +
-      date.getMinutes().toString().padStart(2, "0");
-
-    await this.setCapabilityValue("last_update", formatted);
+    await this.updateCapabilityIfChanged(
+      "measure_temperature",
+      weather.temperature,
+    );
+    await this.updateCapabilityIfChanged("measure_humidity", weather.humidity);
+    await this.updateCapabilityIfChanged("measure_pressure", weather.pressure);
+    await this.updateCapabilityIfChanged(
+      "measure_wind_strength",
+      weather.windSpeed,
+    );
+    await this.updateCapabilityIfChanged(
+      "last_update",
+      this.formatLastUpdate(weather.measuredAt),
+    );
 
     await this.setStoreValue("lastWeather", weather);
   }
 
-  async onDeleted() {
-    if (this.interval) {
-      this.homey.clearInterval(this.interval);
+  formatLastUpdate(measuredAt) {
+    if (!measuredAt) {
+      return "-";
     }
+
+    const date = new Date(measuredAt);
+
+    if (Number.isNaN(date.getTime())) {
+      return "-";
+    }
+
+    return (
+      date.getHours().toString().padStart(2, "0") +
+      ":" +
+      date.getMinutes().toString().padStart(2, "0")
+    );
+  }
+
+  async updateCapabilityIfChanged(capability, newValue) {
+    if (!this.hasCapability(capability)) {
+      return;
+    }
+
+    if (newValue === undefined || newValue === null) {
+      return;
+    }
+
+    const currentValue = this.getCapabilityValue(capability);
+
+    if (currentValue === newValue) {
+      return;
+    }
+
+    await this.setCapabilityValue(capability, newValue);
   }
 }
 
