@@ -4,6 +4,10 @@ const Homey = require("homey");
 const { fetchStationData } = require("./lib/api");
 const { mapStationData } = require("./lib/mapper");
 
+const INITIAL_FETCH_DELAY_MS = 5000;
+const POLL_OFFSET_SECONDS = 15;
+const POLL_MINUTE_STEP = 5;
+
 module.exports = class MyApp extends Homey.App {
   async onInit() {
     this.log("Mochovce Weather app started");
@@ -12,31 +16,62 @@ module.exports = class MyApp extends Homey.App {
     this.lastDatasetTime = null;
     this.lastSuccessfulFileName = null;
     this.isUpdating = false;
-    this.interval = null;
+
     this.startupTimeout = null;
+    this.pollTimeout = null;
 
     this.startupTimeout = this.homey.setTimeout(async () => {
       await this.updateWeather();
-    }, 5000);
+    }, INITIAL_FETCH_DELAY_MS);
 
-    this.interval = this.homey.setInterval(
-      async () => {
-        await this.updateWeather();
-      },
-      10 * 60 * 1000,
-    );
+    this.scheduleNextAlignedPoll();
   }
 
-  async onUninit() {
-    if (this.startupTimeout) {
-      this.homey.clearTimeout(this.startupTimeout);
-      this.startupTimeout = null;
+  scheduleNextAlignedPoll() {
+    if (this.pollTimeout) {
+      this.homey.clearTimeout(this.pollTimeout);
+      this.pollTimeout = null;
     }
 
-    if (this.interval) {
-      this.homey.clearInterval(this.interval);
-      this.interval = null;
+    const delay = this.getDelayToNextAlignedPoll();
+    const nextRun = new Date(Date.now() + delay);
+
+    this.log(
+      `Next aligned SHMU polling scheduled for ${nextRun.toISOString()} (in ${Math.round(delay / 1000)}s)`,
+    );
+
+    this.pollTimeout = this.homey.setTimeout(async () => {
+      try {
+        await this.updateWeather();
+      } finally {
+        this.scheduleNextAlignedPoll();
+      }
+    }, delay);
+  }
+
+  getDelayToNextAlignedPoll() {
+    const now = new Date();
+    const next = new Date(now);
+
+    next.setSeconds(0, 0);
+
+    let minute = next.getMinutes();
+    let alignedMinute = Math.ceil(minute / POLL_MINUTE_STEP) * POLL_MINUTE_STEP;
+
+    if (alignedMinute === minute && now.getSeconds() >= POLL_OFFSET_SECONDS) {
+      alignedMinute += POLL_MINUTE_STEP;
     }
+
+    if (alignedMinute >= 60) {
+      next.setHours(next.getHours() + 1);
+      next.setMinutes(0, 0, 0);
+    } else {
+      next.setMinutes(alignedMinute, 0, 0);
+    }
+
+    next.setSeconds(POLL_OFFSET_SECONDS, 0);
+
+    return Math.max(next.getTime() - now.getTime(), 1000);
   }
 
   async updateWeather() {
