@@ -10,7 +10,7 @@ module.exports = class MyApp extends Homey.App {
 
     this.weatherCache = null;
     this.lastDatasetTime = null;
-    this.lastProbeTimeIso = null;
+    this.lastSuccessfulFileName = null;
     this.isUpdating = false;
     this.interval = null;
     this.startupTimeout = null;
@@ -51,7 +51,7 @@ module.exports = class MyApp extends Homey.App {
       this.log("Polling SHMU for latest dataset...");
 
       const raw = await fetchStationData({
-        lastProbeTimeIso: this.lastProbeTimeIso,
+        lastSuccessfulFileName: this.lastSuccessfulFileName,
       });
 
       const weather = mapStationData(raw);
@@ -61,7 +61,7 @@ module.exports = class MyApp extends Homey.App {
         return;
       }
 
-      this.lastProbeTimeIso = weather.probeTimeIso || null;
+      this.lastSuccessfulFileName = weather.sourceFileName || null;
 
       if (this.lastDatasetTime === weather.measuredAt) {
         this.log(`Dataset unchanged, skipping update (${weather.measuredAt})`);
@@ -78,7 +78,7 @@ module.exports = class MyApp extends Homey.App {
       }
 
       this.log(
-        `Weather updated: measuredAt=${weather.measuredAt}, sourceFile=${weather.sourceUrl}`,
+        `Weather updated: measuredAt=${weather.measuredAt}, sourceFile=${weather.sourceFileName}`,
       );
     } catch (error) {
       this.error("Weather update failed:", error);
