@@ -14,17 +14,34 @@ module.exports = class MyApp extends Homey.App {
 
     this.weatherCache = null;
     this.lastDatasetTime = null;
-    this.lastSuccessfulFileName = null;
     this.isUpdating = false;
 
     this.startupTimeout = null;
     this.pollTimeout = null;
 
     this.startupTimeout = this.homey.setTimeout(async () => {
-      await this.updateWeather();
+      try {
+        await this.updateWeather();
+      } catch (error) {
+        this.error("Initial weather fetch failed:", error);
+      }
     }, INITIAL_FETCH_DELAY_MS);
 
     this.scheduleNextAlignedPoll();
+  }
+
+  async onUninit() {
+    this.log("Mochovce Weather app destroying");
+
+    if (this.startupTimeout) {
+      this.homey.clearTimeout(this.startupTimeout);
+      this.startupTimeout = null;
+    }
+
+    if (this.pollTimeout) {
+      this.homey.clearTimeout(this.pollTimeout);
+      this.pollTimeout = null;
+    }
   }
 
   scheduleNextAlignedPoll() {
@@ -83,11 +100,9 @@ module.exports = class MyApp extends Homey.App {
     this.isUpdating = true;
 
     try {
-      this.log("Polling SHMU for latest dataset...");
+      this.log("Polling SHMU for latest hourly dataset...");
 
-      const raw = await fetchStationData({
-        lastSuccessfulFileName: this.lastSuccessfulFileName,
-      });
+      const raw = await fetchStationData();
 
       const weather = mapStationData(raw);
 
@@ -95,8 +110,6 @@ module.exports = class MyApp extends Homey.App {
         this.log("Mapped weather data is invalid, skipping update");
         return;
       }
-
-      this.lastSuccessfulFileName = weather.sourceFileName || null;
 
       if (this.lastDatasetTime === weather.measuredAt) {
         this.log(`Dataset unchanged, skipping update (${weather.measuredAt})`);
@@ -109,11 +122,18 @@ module.exports = class MyApp extends Homey.App {
       const devices = this.getWeatherDevicesSafe();
 
       for (const device of devices) {
-        await device.updateFromApp(weather);
+        try {
+          await device.updateFromApp(weather);
+        } catch (error) {
+          this.error(
+            `Failed to update device ${device.getName() || device.id}:`,
+            error,
+          );
+        }
       }
 
       this.log(
-        `Weather updated: measuredAt=${weather.measuredAt}, sourceFile=${weather.sourceFileName}`,
+        `Weather updated: measuredAt=${weather.measuredAt}, temp=${weather.temperature}°C`,
       );
     } catch (error) {
       this.error("Weather update failed:", error);

@@ -56,6 +56,7 @@ class MochovceWeatherDevice extends Homey.Device {
 
   async updateCapabilityIfChanged(capability, newValue) {
     if (!this.hasCapability(capability)) {
+      this.log(`Capability ${capability} not available on this device`);
       return;
     }
 
@@ -69,7 +70,12 @@ class MochovceWeatherDevice extends Homey.Device {
       return;
     }
 
-    await this.setCapabilityValue(capability, newValue);
+    try {
+      await this.setCapabilityValue(capability, newValue);
+      this.log(`${capability}: ${currentValue} → ${newValue}`);
+    } catch (error) {
+      this.error(`Failed to set ${capability} to ${newValue}:`, error);
+    }
   }
 }
 
