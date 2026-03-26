@@ -5,8 +5,8 @@ const { fetchStationData } = require("./lib/api");
 const { mapStationData } = require("./lib/mapper");
 
 const INITIAL_FETCH_DELAY_MS = 5000;
-const POLL_OFFSET_SECONDS = 15;
-const POLL_MINUTE_STEP = 5;
+const POLL_MINUTE_OF_HOUR = 5; // Fetch at 5 minutes past each hour (when SHMU data is fresh)
+const POLL_OFFSET_SECONDS = 0;
 
 module.exports = class MyApp extends Homey.App {
   async onInit() {
@@ -70,25 +70,20 @@ module.exports = class MyApp extends Homey.App {
     const now = new Date();
     const next = new Date(now);
 
-    next.setSeconds(0, 0);
+    // Set to the 5-minute mark of the next hour
+    const currentMinute = next.getMinutes();
 
-    let minute = next.getMinutes();
-    let alignedMinute = Math.ceil(minute / POLL_MINUTE_STEP) * POLL_MINUTE_STEP;
-
-    if (alignedMinute === minute && now.getSeconds() >= POLL_OFFSET_SECONDS) {
-      alignedMinute += POLL_MINUTE_STEP;
-    }
-
-    if (alignedMinute >= 60) {
-      next.setHours(next.getHours() + 1);
-      next.setMinutes(0, 0, 0);
+    if (currentMinute < POLL_MINUTE_OF_HOUR) {
+      // We haven't reached the target minute this hour yet
+      next.setMinutes(POLL_MINUTE_OF_HOUR, POLL_OFFSET_SECONDS, 0);
     } else {
-      next.setMinutes(alignedMinute, 0, 0);
+      // Move to next hour's target minute
+      next.setHours(next.getHours() + 1);
+      next.setMinutes(POLL_MINUTE_OF_HOUR, POLL_OFFSET_SECONDS, 0);
     }
 
-    next.setSeconds(POLL_OFFSET_SECONDS, 0);
-
-    return Math.max(next.getTime() - now.getTime(), 1000);
+    const delay = Math.max(next.getTime() - now.getTime(), 1000);
+    return delay;
   }
 
   async updateWeather() {
