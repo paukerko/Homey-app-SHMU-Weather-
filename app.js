@@ -7,6 +7,61 @@ const { mapStationData } = require("./lib/mapper");
 const INITIAL_FETCH_DELAY_MS = 5000;
 const POLL_MINUTE_OF_HOUR = 5; // Fetch at 5 minutes past each hour (when SHMU data is fresh)
 const POLL_OFFSET_SECONDS = 0;
+const POLL_TIMEZONE = "Europe/Bratislava";
+
+function getZonedParts(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const getPart = (type) => parts.find((part) => part.type === type)?.value;
+
+  return {
+    year: Number(getPart("year")),
+    month: Number(getPart("month")),
+    day: Number(getPart("day")),
+    hour: Number(getPart("hour")),
+    minute: Number(getPart("minute")),
+    second: Number(getPart("second")),
+  };
+}
+
+function getTimeZoneOffsetMs(date, timeZone) {
+  const zoned = getZonedParts(date, timeZone);
+  const zonedAsUtcMs = Date.UTC(
+    zoned.year,
+    zoned.month - 1,
+    zoned.day,
+    zoned.hour,
+    zoned.minute,
+    zoned.second,
+  );
+
+  return zonedAsUtcMs - date.getTime();
+}
+
+function localZonedMsToUtcMs(localZonedMs, timeZone) {
+  let utcMs = localZonedMs;
+
+  // A few iterations are enough even around DST transitions.
+  for (let i = 0; i < 4; i++) {
+    const offsetMs = getTimeZoneOffsetMs(new Date(utcMs), timeZone);
+    const nextUtcMs = localZonedMs - offsetMs;
+    if (nextUtcMs === utcMs) {
+      break;
+    }
+    utcMs = nextUtcMs;
+  }
+
+  return utcMs;
+}
 
 module.exports = class MyApp extends Homey.App {
   async onInit() {
@@ -68,21 +123,21 @@ module.exports = class MyApp extends Homey.App {
 
   getDelayToNextAlignedPoll() {
     const now = new Date();
-    const next = new Date(now);
+    const nowParts = getZonedParts(now, POLL_TIMEZONE);
 
-    // Set to the 5-minute mark of the next hour
-    const currentMinute = next.getMinutes();
+    const targetLocalZonedMs = Date.UTC(
+      nowParts.year,
+      nowParts.month - 1,
+      nowParts.day,
+      nowParts.hour + (nowParts.minute < POLL_MINUTE_OF_HOUR ? 0 : 1),
+      POLL_MINUTE_OF_HOUR,
+      POLL_OFFSET_SECONDS,
+      0,
+    );
 
-    if (currentMinute < POLL_MINUTE_OF_HOUR) {
-      // We haven't reached the target minute this hour yet
-      next.setMinutes(POLL_MINUTE_OF_HOUR, POLL_OFFSET_SECONDS, 0);
-    } else {
-      // Move to next hour's target minute
-      next.setHours(next.getHours() + 1);
-      next.setMinutes(POLL_MINUTE_OF_HOUR, POLL_OFFSET_SECONDS, 0);
-    }
+    const targetUtcMs = localZonedMsToUtcMs(targetLocalZonedMs, POLL_TIMEZONE);
+    const delay = Math.max(targetUtcMs - now.getTime(), 1000);
 
-    const delay = Math.max(next.getTime() - now.getTime(), 1000);
     return delay;
   }
 

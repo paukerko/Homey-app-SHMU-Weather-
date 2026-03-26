@@ -1,0 +1,217 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mochovce Weather</title>
+    <style>
+      :root {
+        --bg: linear-gradient(160deg, #083a54 0%, #0f5f83 45%, #26a4c9 100%);
+        --card: rgba(255, 255, 255, 0.16);
+        --text: #f6fbff;
+        --muted: rgba(246, 251, 255, 0.78);
+        --accent: #ffd166;
+        --border: rgba(255, 255, 255, 0.25);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+        background: transparent;
+        color: var(--text);
+      }
+
+      .wrap {
+        min-height: 100%;
+        padding: 12px;
+        border-radius: 16px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        overflow: hidden;
+      }
+
+      .top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .title {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .updated {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .temp {
+        margin-top: 6px;
+        font-size: 40px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .grid {
+        margin-top: 10px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .tile {
+        padding: 8px;
+        border-radius: 10px;
+        background: var(--card);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .k {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .v {
+        display: block;
+        margin-top: 2px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .status {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <div class="title">Mochovce</div>
+        <div class="updated" id="updated">--:--</div>
+      </div>
+
+      <div class="temp" id="temperature">--.- C</div>
+
+      <div class="grid">
+        <div class="tile">
+          <span class="k">Humidity</span>
+          <span class="v" id="humidity">-- %</span>
+        </div>
+        <div class="tile">
+          <span class="k">Pressure</span>
+          <span class="v" id="pressure">---- hPa</span>
+        </div>
+        <div class="tile">
+          <span class="k">Wind</span>
+          <span class="v" id="wind">--.- m/s</span>
+        </div>
+      </div>
+
+      <div class="status" id="status">Loading...</div>
+    </div>
+
+    <script>
+      function fmt(value, digits) {
+        if (
+          value === null ||
+          value === undefined ||
+          Number.isNaN(Number(value))
+        ) {
+          return "--";
+        }
+
+        return Number(value).toFixed(digits);
+      }
+
+      function getPart(parts, type) {
+        for (var i = 0; i < parts.length; i++) {
+          if (parts[i].type === type) {
+            return parts[i].value;
+          }
+        }
+
+        return null;
+      }
+
+      function updateView(payload) {
+        var statusEl = document.getElementById("status");
+
+        if (!payload || !payload.ok || !payload.weather) {
+          statusEl.textContent = (payload && payload.message) || "No data";
+          return;
+        }
+
+        var weather = payload.weather;
+
+        document.getElementById("temperature").textContent =
+          fmt(weather.temperature, 1) + " C";
+        document.getElementById("humidity").textContent =
+          fmt(weather.humidity, 1) + " %";
+        document.getElementById("pressure").textContent =
+          fmt(weather.pressure, 1) + " hPa";
+        document.getElementById("wind").textContent =
+          fmt(weather.windSpeed, 1) + " m/s";
+
+        var measuredAt = weather.measuredAt
+          ? new Date(weather.measuredAt)
+          : null;
+        if (measuredAt && !Number.isNaN(measuredAt.getTime())) {
+          var parts = new Intl.DateTimeFormat("sk-SK", {
+            timeZone: "Europe/Bratislava",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).formatToParts(measuredAt);
+
+          var hour = getPart(parts, "hour") || "--";
+          var minute = getPart(parts, "minute") || "--";
+          document.getElementById("updated").textContent = hour + ":" + minute;
+        }
+
+        statusEl.textContent = "Synced with SHMU";
+      }
+
+      function refresh(Homey) {
+        return Homey.api("GET", "/current", {})
+          .then(function (payload) {
+            updateView(payload);
+          })
+          .catch(function (error) {
+            document.getElementById("status").textContent =
+              "Unable to load data";
+            console.error(error);
+          });
+      }
+
+      function onHomeyReady(Homey) {
+        try {
+          Homey.ready({ height: 180 });
+        } catch (error) {
+          console.error("Homey.ready failed", error);
+          try {
+            Homey.ready();
+          } catch (_) {}
+        }
+
+        refresh(Homey);
+        setInterval(function () {
+          refresh(Homey);
+        }, 60 * 1000);
+      }
+    </script>
+  </body>
+</html>

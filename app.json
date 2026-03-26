@@ -71,6 +71,22 @@
       "id": "mochovce-weather"
     }
   ],
+  "widgets": {
+    "mochovce-now": {
+      "name": {
+        "en": "Mochovce Weather"
+      },
+      "height": 180,
+      "api": {
+        "getCurrentWeather": {
+          "method": "GET",
+          "path": "/current"
+        }
+      },
+      "id": "mochovce-now",
+      "settings": []
+    }
+  },
   "capabilities": {
     "last_update": {
       "type": "string",
