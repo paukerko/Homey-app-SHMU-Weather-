@@ -2,6 +2,8 @@
 
 const Homey = require("homey");
 
+const DISPLAY_TIMEZONE = "Europe/Bratislava";
+
 class MochovceWeatherDevice extends Homey.Device {
   async onInit() {
     this.log("Mochovce Weather device started");
@@ -47,11 +49,21 @@ class MochovceWeatherDevice extends Homey.Device {
       return "-";
     }
 
-    return (
-      date.getHours().toString().padStart(2, "0") +
-      ":" +
-      date.getMinutes().toString().padStart(2, "0")
-    );
+    const parts = new Intl.DateTimeFormat("sk-SK", {
+      timeZone: DISPLAY_TIMEZONE,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(date);
+
+    const hour = parts.find((part) => part.type === "hour")?.value;
+    const minute = parts.find((part) => part.type === "minute")?.value;
+
+    if (!hour || !minute) {
+      return "-";
+    }
+
+    return `${hour}:${minute}`;
   }
 
   async updateCapabilityIfChanged(capability, newValue) {
